@@ -1,11 +1,14 @@
 package main
 
 import (
+	"archive/zip"
 	"bufio"
 	"database/sql"
 	"encoding/xml"
 	"fmt"
+	"io"
 	"log"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -1021,9 +1024,39 @@ func setEnv() {
 	}
 }
 
-func main() {
-	setEnv()
+func checkFileExists(filePath string) bool {
+	_, err := os.Open(filePath)
+	return err == nil
 
+}
+
+func DownloadFile(filepath string, url string) error {
+	resp, err := http.Get(url)
+	if err != nil {
+		return err
+	}
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+
+		}
+	}(resp.Body)
+	// Create the file
+	out, err := os.Create(filepath)
+	if err != nil {
+		return err
+	}
+	defer func(out *os.File) {
+		err := out.Close()
+		if err != nil {
+
+		}
+	}(out)
+	_, err = io.Copy(out, resp.Body)
+	return err
+}
+
+func workFolder() {
 	err := filepath.Walk(sourcePath,
 		func(path string, info os.FileInfo, err error) error {
 			if err != nil {
@@ -1115,4 +1148,105 @@ func main() {
 	}
 	allFinishTime := time.Now()
 	fmt.Println("All Time:", allFinishTime.Sub(allStartTime).Seconds())
+}
+
+func unpackZip(fileName string) {
+	archive, err := zip.OpenReader(fileName)
+	if err != nil {
+		panic(err)
+	}
+	for _, f := range archive.File {
+		filePath := filepath.Join(sourcePath, f.Name)
+		if f.FileInfo().IsDir() {
+			if err := os.MkdirAll(filePath, os.ModePerm); err != nil {
+				panic(err)
+			}
+			continue
+		}
+		if err := os.MkdirAll(filepath.Dir(filePath), os.ModePerm); err != nil {
+			panic(err)
+		}
+		dstFile, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
+		if err != nil {
+			panic(err)
+		}
+		srcFile, err := f.Open()
+		if err != nil {
+			panic(err)
+		}
+		if _, err := io.Copy(dstFile, srcFile); err != nil {
+			panic(err)
+		}
+		err = dstFile.Close()
+		if err != nil {
+			return
+		}
+		err = srcFile.Close()
+		if err != nil {
+			return
+		}
+	}
+	defer func(archive *zip.ReadCloser) {
+		err := archive.Close()
+		if err != nil {
+
+		}
+	}(archive)
+}
+
+func main() {
+	setEnv()
+
+	startDate, _ := time.Parse(time.DateOnly, "2024-07-26")
+	for startDate.Before(time.Now()) {
+		startDate = startDate.AddDate(0, 0, 1)
+		filePath := "https://fias-file.nalog.ru/downloads/" + startDate.Format("2006.01.02") + "/gar_delta_xml.zip"
+		fileZip := sourcePath + startDate.Format("2006.01.02") + ".zip"
+		err := DownloadFile(fileZip, filePath)
+		if err != nil {
+			return
+		}
+		f, err := os.Stat(fileZip)
+		if err != nil {
+			return
+		}
+		if f.Size() != 162 {
+			unpackZip(fileZip)
+			err = os.Remove(fileZip)
+			if err != nil {
+				return
+			}
+			workFolder()
+			err = filepath.Walk(sourcePath,
+				func(path string, info os.FileInfo, err error) error {
+					if err != nil {
+						return err
+					}
+					if info.IsDir() == false {
+						err = os.Remove(path)
+					}
+					if err != nil {
+						return err
+					}
+					return nil
+				})
+			err = filepath.Walk(filesPath,
+				func(path string, info os.FileInfo, err error) error {
+					if err != nil {
+						return err
+					}
+					err = os.Remove(path)
+					if err != nil {
+						return err
+					}
+					return nil
+				})
+			panic("")
+		} else {
+			err := os.Remove(fileZip)
+			if err != nil {
+				return
+			}
+		}
+	}
 }
