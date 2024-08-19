@@ -17,16 +17,16 @@ import (
 )
 
 var (
-	sourcePath       string = ""
-	filesPath        string = ""
-	databaseIP       string = ""
-	databasePort     string = ""
-	databaseName     string = ""
-	databaseScheme   string = ""
-	databaseUser     string = ""
-	databasePassword string = ""
-	loadFull         bool   = false
-	packetCount      int64  = 100
+	sourcePath             = ""
+	filesPath              = ""
+	databaseIP             = ""
+	databasePort           = ""
+	databaseName           = ""
+	databaseScheme         = ""
+	databaseUser           = ""
+	databasePassword       = ""
+	loadFull               = false
+	packetCount      int64 = 100
 )
 
 func Ternary(statement bool, a, b interface{}) interface{} {
