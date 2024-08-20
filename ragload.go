@@ -1041,7 +1041,6 @@ func DownloadFile(filepath string, url string) error {
 
 		}
 	}(resp.Body)
-	// Create the file
 	out, err := os.Create(filepath)
 	if err != nil {
 		return err
@@ -1196,56 +1195,56 @@ func unpackZip(fileName string) {
 
 func main() {
 	setEnv()
+	err := os.RemoveAll(sourcePath)
+	if err != nil {
 
+	}
+	err = os.RemoveAll(filesPath)
+	if err != nil {
+
+	}
 	startDate, _ := time.Parse(time.DateOnly, "2024-07-26")
 	for startDate.Before(time.Now()) {
+		err = os.Mkdir(sourcePath, 0750)
+		if err != nil {
+
+		}
+		err = os.Mkdir(filesPath, 0750)
+		if err != nil {
+
+		}
 		startDate = startDate.AddDate(0, 0, 1)
 		filePath := "https://fias-file.nalog.ru/downloads/" + startDate.Format("2006.01.02") + "/gar_delta_xml.zip"
 		fileZip := sourcePath + startDate.Format("2006.01.02") + ".zip"
+		fmt.Println(startDate)
 		err := DownloadFile(fileZip, filePath)
 		if err != nil {
-			return
+
 		}
 		f, err := os.Stat(fileZip)
 		if err != nil {
-			return
+
 		}
 		if f.Size() != 162 {
+			fmt.Println(fileZip)
 			unpackZip(fileZip)
 			err = os.Remove(fileZip)
 			if err != nil {
-				return
+
 			}
 			workFolder()
-			err = filepath.Walk(sourcePath,
-				func(path string, info os.FileInfo, err error) error {
-					if err != nil {
-						return err
-					}
-					if info.IsDir() == false {
-						err = os.Remove(path)
-					}
-					if err != nil {
-						return err
-					}
-					return nil
-				})
-			err = filepath.Walk(filesPath,
-				func(path string, info os.FileInfo, err error) error {
-					if err != nil {
-						return err
-					}
-					err = os.Remove(path)
-					if err != nil {
-						return err
-					}
-					return nil
-				})
-			panic("")
+			err = os.RemoveAll(sourcePath)
+			if err != nil {
+
+			}
+			err = os.RemoveAll(filesPath)
+			if err != nil {
+
+			}
 		} else {
 			err := os.Remove(fileZip)
 			if err != nil {
-				return
+
 			}
 		}
 	}
