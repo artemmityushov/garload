@@ -62,7 +62,6 @@ func packetADDR_OBJ(sqlObject *sql.DB, data []itemADD_OBJ) bool {
 			if err != nil {
 				panic(err)
 			}
-
 		}
 	} else {
 		idxs := make([]string, 0)

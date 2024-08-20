@@ -1193,6 +1193,54 @@ func unpackZip(fileName string) {
 	}(archive)
 }
 
+func getVersionValue() time.Time {
+	value := time.Now()
+	psqlInfo := getDbConnectString()
+	sqlObject, err := sql.Open("postgres", psqlInfo)
+	CheckError(err)
+	defer func(sqlObject *sql.DB) {
+		err := sqlObject.Close()
+		if err != nil {
+
+		}
+	}(sqlObject)
+	err = sqlObject.Ping()
+	CheckError(err)
+
+	rowsExists, err := sqlObject.Query("select v from " + databaseScheme + ".ver")
+	CheckError(err)
+	defer func(rowsExists *sql.Rows) {
+		err := rowsExists.Close()
+		if err != nil {
+
+		}
+	}(rowsExists)
+	for rowsExists.Next() {
+		var value time.Time
+		err = rowsExists.Scan(&value)
+		CheckError(err)
+	}
+	return value
+}
+
+func setVersionValue(value time.Time) {
+	psqlInfo := getDbConnectString()
+	sqlObject, err := sql.Open("postgres", psqlInfo)
+	CheckError(err)
+	defer func(sqlObject *sql.DB) {
+		err := sqlObject.Close()
+		if err != nil {
+
+		}
+	}(sqlObject)
+	err = sqlObject.Ping()
+	CheckError(err)
+	_, err = sqlObject.Exec("update " + databaseScheme + ".ver set v = '" + value.Format("2006-01-02") + "'")
+	if err != nil {
+		panic(err)
+	}
+}
+
 func main() {
 	setEnv()
 	err := os.RemoveAll(sourcePath)
@@ -1203,7 +1251,7 @@ func main() {
 	if err != nil {
 
 	}
-	startDate, _ := time.Parse(time.DateOnly, "2024-07-26")
+	startDate, _ := time.Parse(time.DateOnly, getVersionValue().Format("2006-01-02"))
 	for startDate.Before(time.Now()) {
 		err = os.Mkdir(sourcePath, 0750)
 		if err != nil {
@@ -1248,4 +1296,5 @@ func main() {
 			}
 		}
 	}
+	setVersionValue(time.Now())
 }
