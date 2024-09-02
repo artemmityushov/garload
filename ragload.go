@@ -1216,7 +1216,6 @@ func getVersionValue() time.Time {
 		}
 	}(rowsExists)
 	for rowsExists.Next() {
-		var value time.Time
 		err = rowsExists.Scan(&value)
 		CheckError(err)
 	}
